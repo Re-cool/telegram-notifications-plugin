@@ -1,11 +1,10 @@
 package jenkinsci.plugins.telegrambot.telegram;
 
-import jenkins.model.GlobalConfiguration;
-import jenkinsci.plugins.telegrambot.TelegramBotGlobalConfiguration;
-import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import org.telegram.telegrambots.meta.generics.BotSession;
+import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,7 +16,7 @@ public class TelegramBotRunner {
 
     private static final Logger LOG = Logger.getLogger(TelegramBot.class.getName());
 
-    private final TelegramBotsApi api = new TelegramBotsApi();
+    private final TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private TelegramBot bot;
@@ -26,14 +25,16 @@ public class TelegramBotRunner {
     private String botToken;
     private String botName;
 
-
-    static {
-        ApiContextInitializer.init();
+    public TelegramBotRunner() throws TelegramApiException {
     }
 
     public synchronized static TelegramBotRunner getInstance() {
         if (instance == null) {
-            instance = new TelegramBotRunner();
+            try {
+                instance = new TelegramBotRunner();
+            } catch (TelegramApiException e) {
+                LOG.log(Level.SEVERE, "Telegram Bot Runner error", e);
+            }
         }
         return instance;
     }
@@ -70,7 +71,7 @@ public class TelegramBotRunner {
         try {
             botSession = api.registerBot(bot);
             LOG.log(Level.INFO, "New bot session was registered");
-        } catch (TelegramApiRequestException e) {
+        } catch (TelegramApiException e) {
             LOG.log(Level.SEVERE, "Telegram API error", e);
         }
     }
